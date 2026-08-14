@@ -1,0 +1,54 @@
+import numpy as np
+import pandas as pd
+import pyarrow as pa
+from pandas.tseries.offsets import MonthEnd, MonthBegin
+
+def clean_data(df, month):
+    month_start = pd.Timestamp(
+        year=2023,
+        month=month,
+        day=1
+    )
+
+    month_end = month_start + MonthEnd(0)
+
+    # Filter data to only have trips in the respective month
+    df = df[(df['tpep_pickup_datetime'] >= month_start) & (df['tpep_pickup_datetime'] <= month_end) & (df['tpep_dropoff_datetime'] >= month_start)]
+
+    # remove flex fare trips, as these contain missing data. 
+    df = df[df['payment_type'] != 0]
+
+    # Assume trips longer than 100 miles are abnormal. 
+    df = df[df['trip_distance'] <= 100]
+
+    # get absolute value for fare/total amounts for refund/duplicate checking
+    df['abs_fare'] = df['fare_amount'].abs()
+    df['abs_total'] = df['total_amount'].abs()
+
+    key_columns = [
+        'tpep_pickup_datetime',
+        'tpep_dropoff_datetime',
+        'passenger_count',
+        'trip_distance',
+        'PULocationID',
+        'DOLocationID',
+        'abs_fare',
+        'abs_total'
+    ]
+
+    # for future reference. will be returned at end
+    refund_candidates = df[df.duplicated(subset=key_columns, keep=False)]
+
+    # remove duplicates from data to analyze
+    df = df.drop_duplicates(subset=key_columns, keep=False)
+
+    # for future analysis. trips with negative fares/totals
+    negative_trips = df[(df['total_amount'] < 0) | (df['fare_amount'] < 0)]
+
+    # for future reference, trips with 0 passengers
+    zero_passenger = df[df['passenger_count'] <= 0]
+
+    # remove negative trips and 0 passengers
+    df = df[(df['total_amount'] >= 0) & (df['fare_amount'] >= 0) & (df['passenger_count'] > 0)]
+
+    return (df, refund_candidates, negative_trips, zero_passenger)
