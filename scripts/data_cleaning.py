@@ -4,6 +4,12 @@ import pyarrow as pa
 from pandas.tseries.offsets import MonthEnd, MonthBegin
 
 def clean_data(df, month):
+        # Standardize known column naming inconsistencies
+    column_renames = {
+        "Airport_fee": "airport_fee"
+    }
+
+    df = df.rename(columns=column_renames)
     month_start = pd.Timestamp(
         year=2023,
         month=month,
