@@ -4,7 +4,7 @@ import pyarrow as pa
 from pandas.tseries.offsets import MonthEnd, MonthBegin
 
 def clean_data(df, month):
-        # Standardize known column naming inconsistencies
+    # Standardize known column naming inconsistencies
     column_renames = {
         "Airport_fee": "airport_fee"
     }
@@ -57,4 +57,28 @@ def clean_data(df, month):
     # remove negative trips and 0 passengers
     df = df[(df['total_amount'] >= 0) & (df['fare_amount'] >= 0) & (df['passenger_count'] > 0)]
 
-    return (df, refund_candidates, negative_trips, zero_passenger)
+    # Checks if pickup and dropoff times are reversed and switches them to be correct. 
+    mask = df['tpep_pickup_datetime'] > df['tpep_dropoff_datetime']
+
+    df.loc[mask, ['tpep_pickup_datetime', 'tpep_dropoff_datetime']] = (
+        df.loc[mask, ['tpep_dropoff_datetime', 'tpep_pickup_datetime']].to_numpy()
+    )
+
+    return (add_columns(df), refund_candidates, negative_trips, zero_passenger)
+
+def add_columns(df):
+    df['pickup_month'] = df['tpep_pickup_datetime'].dt.month
+    df['pickup_day'] = df['tpep_pickup_datetime'].dt.day
+    df['pickup_hour'] = df['tpep_pickup_datetime'].dt.hour
+    df['pickup_day_of_week_num'] = df['tpep_pickup_datetime'].dt.day_of_week
+    df['pickup_day_of_week'] = df['tpep_pickup_datetime'].dt.day_name()
+    df['pickup_date'] = df['tpep_pickup_datetime'].dt.date
+    df["is_weekend"] = (
+        df["pickup_day_of_week_num"] >= 5
+    )
+    df['trip_duration_minutes'] = (
+            df["tpep_dropoff_datetime"]
+            - df["tpep_pickup_datetime"]
+        ).dt.total_seconds() / 60
+
+    return df
