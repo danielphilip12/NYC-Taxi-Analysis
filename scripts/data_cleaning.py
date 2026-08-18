@@ -16,7 +16,7 @@ def clean_data(df, month):
         day=1
     )
 
-    month_end = month_start + MonthEnd(0)
+    month_end = (month_start + MonthEnd(1)).replace(hour=23, minute=59, second=59)
 
     # Filter data to only have trips in the respective month
     df = df[(df['tpep_pickup_datetime'] >= month_start) & (df['tpep_pickup_datetime'] <= month_end) & (df['tpep_dropoff_datetime'] >= month_start)]
