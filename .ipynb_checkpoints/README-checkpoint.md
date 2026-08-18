@@ -22,6 +22,11 @@ In the initial stages of cleaning the data, I did the following:
 
 In doing further analysis of the dataset, more invalid trips were found, so I will be going back to the cleaning function after finding out what cleaning steps still need to be taken.
 
+### Columns to investigate
+- Trip Duration
+- Fare Amount
+- Total Amount
+
 ### Need to Add to Cleaning
-- Trip Durations beyond the 99th percentile
-- 
+- Trip Durations limits
+- Fare Amounts limits
