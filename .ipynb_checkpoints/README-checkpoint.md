@@ -30,3 +30,4 @@ In doing further analysis of the dataset, more invalid trips were found, so I wi
 ### Need to Add to Cleaning
 - Trip Durations limits
 - Fare Amounts limits
+- Total Amounts limits
