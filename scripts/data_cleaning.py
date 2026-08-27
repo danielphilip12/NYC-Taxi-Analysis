@@ -17,9 +17,10 @@ def clean_data(df, month):
     )
 
     month_end = (month_start + MonthEnd(1)).replace(hour=23, minute=59, second=59)
+    next_month = month_start + MonthBegin(1)
 
     # Filter data to only have trips in the respective month
-    df = df[(df['tpep_pickup_datetime'] >= month_start) & (df['tpep_pickup_datetime'] <= month_end) & (df['tpep_dropoff_datetime'] >= month_start)]
+    df = df[(df['tpep_pickup_datetime'] >= month_start) & (df['tpep_pickup_datetime'] < next_month) & (df['tpep_dropoff_datetime'] >= month_start)].copy()
 
     # remove flex fare trips, as these contain missing data. 
     df = df[df['payment_type'] != 0]
@@ -57,6 +58,14 @@ def clean_data(df, month):
     # remove negative trips and 0 passengers
     df = df[(df['total_amount'] >= 0) & (df['fare_amount'] >= 0) & (df['passenger_count'] > 0)]
 
+    # remove rows where the distance is 0, but the start and end locations are different. 
+    df = df[
+        ~(
+            (df["trip_distance"] == 0) &
+            (df["PULocationID"] != df["DOLocationID"])
+        )
+    ]
+
     # Checks if pickup and dropoff times are reversed and switches them to be correct. 
     mask = df['tpep_pickup_datetime'] > df['tpep_dropoff_datetime']
 
@@ -64,7 +73,13 @@ def clean_data(df, month):
         df.loc[mask, ['tpep_dropoff_datetime', 'tpep_pickup_datetime']].to_numpy()
     )
 
-    return (add_columns(df), refund_candidates, negative_trips, zero_passenger)
+    df = add_columns(df)
+
+    # remove rows where the trip lasted longer than 1 day. 
+    # trips lasting longer than 1 day are anomalous records, and so will be excluded from the analysis. 
+    df = df[df['trip_duration_minutes'] < 1440]
+
+    return (df, refund_candidates, negative_trips, zero_passenger)
 
 def add_columns(df):
     df['pickup_month'] = df['tpep_pickup_datetime'].dt.month
